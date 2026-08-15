@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animal Taste</title>
+<style>
+  :root{
+    --bg:#0d1017;
+    --bg2:#151a24;
+    --card:#181e29;
+    --card2:#1f2733;
+    --line:#2b3442;
+    --txt:#e8edf5;
+    --dim:#8e9bb0;
+    --dimmer:#5f6b7d;
+    --up:#3fd68a;
+    --down:#ff6b7a;
+    --accent:#7aa2ff;
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--txt);
+    background:
+      radial-gradient(1100px 600px at 12% -10%, #1d2740 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, #241d33 0%, transparent 55%),
+      var(--bg);
+    min-height:100%;
+    padding:26px 20px 48px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto}
+
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+  h1{font-size:22px;margin:0;letter-spacing:-.02em;font-weight:650}
+  h1 span{opacity:.55;font-weight:400}
+  .sub{color:var(--dim);font-size:13.5px;margin-left:auto}
+  .sub b{color:var(--txt);font-weight:600}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:22px;align-items:start}
+  @media (max-width:880px){.layout{grid-template-columns:1fr}}
+
+  /* ---------- stage ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .stage{position:relative;aspect-ratio:16/10;background:var(--bg2);overflow:hidden}
+  @media (max-width:520px){.stage{aspect-ratio:4/3}}
+  .stage img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transform:scale(1.06);
+    transition:opacity .55s ease, transform 6s ease-out;
+  }
+  .stage img.on{opacity:1;transform:scale(1)}
+
+  .bar{position:absolute;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:4;box-shadow:0 0 12px var(--accent)}
+  .bar.paused{background:var(--dimmer);box-shadow:none}
+
+  .badge{
+    position:absolute;top:12px;left:12px;z-index:3;display:flex;align-items:center;gap:7px;
+    background:rgba(10,13,20,.7);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
+    padding:6px 11px;border-radius:999px;font-size:12.5px;color:#dbe3f0;
+  }
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .badge.liked .dot{background:var(--up)}
+  .badge.disliked .dot{background:var(--down)}
+
+  .pausebtn{
+    position:absolute;top:12px;right:12px;z-index:3;
+    background:rgba(10,13,20,.7);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
+    color:#dbe3f0;padding:6px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;
+  }
+  .pausebtn:hover{background:rgba(10,13,20,.9)}
+
+  .caption{
+    position:absolute;left:0;right:0;bottom:0;z-index:2;padding:44px 18px 14px;
+    background:linear-gradient(to top,rgba(8,10,15,.92) 12%,rgba(8,10,15,.55) 55%,transparent);
+    pointer-events:none;
+  }
+  .caption .name{font-size:26px;font-weight:650;letter-spacing:-.02em;line-height:1.15}
+  .caption .sci{color:#a8b6cc;font-style:italic;font-size:13.5px;margin-top:3px}
+  .caption .credit{color:#7d8ba0;font-size:11.5px;margin-top:7px;pointer-events:auto}
+  .caption .credit a{color:#93a5c0}
+
+  .spinner{
+    position:absolute;inset:0;display:grid;place-items:center;z-index:1;color:var(--dimmer);font-size:13px;
+  }
+  .spinner .ring{
+    width:30px;height:30px;border-radius:50%;border:2.5px solid var(--line);border-top-color:var(--accent);
+    animation:spin .8s linear infinite;margin:0 auto 10px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- vote bar ---------- */
+  .votes{display:flex;gap:12px;padding:14px;border-top:1px solid var(--line);background:var(--card)}
+  .vote{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:9px;
+    padding:15px 10px;border-radius:13px;border:1px solid var(--line);background:var(--card2);
+    color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;
+    transition:transform .12s ease, background .16s, border-color .16s, box-shadow .16s;
+    user-select:none;
+  }
+  .vote .ico{font-size:20px;line-height:1}
+  .vote .key{font-size:11px;color:var(--dimmer);font-weight:500;border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .vote:hover{transform:translateY(-2px)}
+  .vote.up:hover{border-color:var(--up);box-shadow:0 6px 22px -10px var(--up)}
+  .vote.down:hover{border-color:var(--down);box-shadow:0 6px 22px -10px var(--down)}
+  .vote:active{transform:translateY(0) scale(.98)}
+  .vote.up.flash{background:rgba(63,214,138,.18);border-color:var(--up)}
+  .vote.down.flash{background:rgba(255,107,122,.18);border-color:var(--down)}
+  .vote:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
+
+  .toast{
+    min-height:20px;text-align:center;font-size:13px;color:var(--dim);
+    padding:0 14px 13px;opacity:0;transition:opacity .25s;
+  }
+  .toast.on{opacity:1}
+  .toast b{color:var(--txt)}
+
+  /* ---------- sidebar ---------- */
+  .panel{padding:16px 16px 6px}
+  .panel h2{
+    font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);
+    margin:0 0 3px;font-weight:600;
+  }
+  .panel .hint{font-size:12.5px;color:var(--dimmer);margin:0 0 14px}
+
+  .rank{list-style:none;margin:0;padding:0;max-height:430px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+  .rank::-webkit-scrollbar{width:8px}
+  .rank::-webkit-scrollbar-thumb{background:#2f3947;border-radius:4px}
+  .rank li{padding:7px 10px 7px 0;border-bottom:1px solid rgba(43,52,66,.55)}
+  .rank li:last-child{border-bottom:0}
+  .row1{display:flex;align-items:center;gap:8px;font-size:13.5px}
+  .row1 .em{width:19px;text-align:center;font-size:14px}
+  .row1 .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row1 .pct{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12.5px}
+  .row1 .tally{font-size:11px;color:var(--dimmer);font-variant-numeric:tabular-nums}
+  .meter{height:5px;border-radius:3px;background:#222a37;margin-top:6px;overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:3px;transition:width .45s ease, background .45s}
+  .rank li.current{background:rgba(122,162,255,.07);margin:0 -16px;padding-left:16px;padding-right:16px}
+
+  .tags{display:flex;flex-wrap:wrap;gap:6px;padding:2px 16px 16px}
+  .tag{font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+  .tag.pos{border-color:rgba(63,214,138,.45);color:#8fe7bb;background:rgba(63,214,138,.08)}
+  .tag.neg{border-color:rgba(255,107,122,.4);color:#ffa7b0;background:rgba(255,107,122,.07)}
+
+  .foot{display:flex;gap:9px;padding:12px 16px 16px;border-top:1px solid var(--line);margin-top:6px}
+  .mini{
+    flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:transparent;
+    color:var(--dim);font-size:12.5px;cursor:pointer;transition:.15s;
+  }
+  .mini:hover{color:var(--txt);border-color:var(--dimmer)}
+
+  .err{padding:16px;color:#ffb3ba;font-size:13px;background:rgba(255,107,122,.07);border-top:1px solid var(--line);display:none}
+  .err.on{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Animal Taste <span>— it learns what you like</span></h1>
+    <div class="sub"><b id="seenN">0</b> rated · new picture every 5s</div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ============ stage ============ -->
+    <div class="card">
+      <div class="stage" id="stage">
+        <div class="bar" id="bar"></div>
+        <div class="spinner" id="spinner"><div><div class="ring"></div>finding an animal…</div></div>
+        <img id="imgA" alt=""><img id="imgB" alt="">
+        <div class="badge" id="badge"><span class="dot"></span><span id="badgeTxt">exploring</span></div>
+        <button class="pausebtn" id="pause">⏸ pause</button>
+        <div class="caption">
+          <div class="name" id="name">…</div>
+          <div class="sci" id="sci"></div>
+          <div class="credit" id="credit"></div>
+        </div>
+      </div>
+
+      <div class="votes">
+        <button class="vote down" id="btnDown"><span class="ico">👎</span> Not for me <span class="key">←</span></button>
+        <button class="vote up" id="btnUp"><span class="ico">👍</span> Love it <span class="key">→</span></button>
+      </div>
+      <div class="toast" id="toast"></div>
+      <div class="err" id="err"></div>
+    </div>
+
+    <!-- ============ sidebar ============ -->
+    <div class="card">
+      <div class="panel">
+        <h2>Your taste profile</h2>
+        <p class="hint">Predicted chance you'll like each animal. Votes also teach traits, so unseen animals get ranked too.</p>
+        <ul class="rank" id="rank"></ul>
+      </div>
+      <div class="tags" id="tags"></div>
+      <div class="foot">
+        <button class="mini" id="skip">Skip →</button>
+        <button class="mini" id="reset">Reset learning</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =======================================================================
+   1. CATALOG — each animal carries trait tags so the model can generalise
+      from "you liked a red panda" to "you might like a sea otter".
+   ======================================================================= */
+const CATALOG = [
+  {id:"cat",       name:"Cat",              sci:"Felis catus",              em:"🐱", src:"cataas",           tags:["mammal","fluffy","feline","pet","small"]},
+  {id:"dog",       name:"Dog",              sci:"Canis familiaris",         em:"🐶", src:"dogceo",           tags:["mammal","fluffy","canine","pet"]},
+  {id:"fox",       name:"Red Fox",          sci:"Vulpes vulpes",            em:"🦊", src:"inat", tid:42069,  tags:["mammal","fluffy","canine","wild"]},
+  {id:"redpanda",  name:"Red Panda",        sci:"Ailurus fulgens",          em:"🐼", src:"inat", tid:41653,  tags:["mammal","fluffy","wild","small"]},
+  {id:"capybara",  name:"Capybara",         sci:"Hydrochoerus hydrochaeris",em:"🦫", src:"inat", tid:74442,  tags:["mammal","wild","aquatic","chunky"]},
+  {id:"otter",     name:"Sea Otter",        sci:"Enhydra lutris",           em:"🦦", src:"inat", tid:41860,  tags:["mammal","fluffy","aquatic","marine","wild"]},
+  {id:"alpaca",    name:"Alpaca",           sci:"Lama pacos",               em:"🦙", src:"inat", tid:319688, tags:["mammal","fluffy","pet","chunky"]},
+  {id:"whale",     name:"Humpback Whale",   sci:"Megaptera novaeangliae",   em:"🐋", src:"inat", tid:41566,  tags:["mammal","marine","aquatic","big","wild"]},
+  {id:"giraffe",   name:"Giraffe",          sci:"Giraffa",                  em:"🦒", src:"inat", tid:42156,  tags:["mammal","big","wild"]},
+  {id:"owl",       name:"Snowy Owl",        sci:"Bubo scandiacus",          em:"🦉", src:"inat", tid:144594, tags:["bird","fluffy","feathered","wild"]},
+  {id:"penguin",   name:"King Penguin",     sci:"Aptenodytes patagonicus",  em:"🐧", src:"inat", tid:3821,   tags:["bird","feathered","aquatic","marine","chunky"]},
+  {id:"hummer",    name:"Hummingbird",      sci:"Calypte anna",             em:"🐦", src:"inat", tid:6317,   tags:["bird","feathered","colorful","small"]},
+  {id:"turtle",    name:"Green Sea Turtle", sci:"Chelonia mydas",           em:"🐢", src:"inat", tid:39659,  tags:["reptile","scaly","aquatic","marine","wild"]},
+  {id:"chameleon", name:"Panther Chameleon",sci:"Furcifer pardalis",        em:"🦎", src:"inat", tid:33004,  tags:["reptile","scaly","colorful","small","weird"]},
+  {id:"dartfrog",  name:"Poison Dart Frog", sci:"Oophaga pumilio",          em:"🐸", src:"inat", tid:66278,  tags:["amphibian","colorful","small","weird"]},
+  {id:"salamander",name:"Fire Salamander",  sci:"Salamandra salamandra",    em:"🦎", src:"inat", tid:27726,  tags:["amphibian","colorful","weird","small"]},
+  {id:"octopus",   name:"Octopus",          sci:"Octopus vulgaris",         em:"🐙", src:"inat", tid:49315,  tags:["invertebrate","marine","aquatic","weird"]},
+  {id:"clownfish", name:"Clownfish",        sci:"Amphiprion",               em:"🐠", src:"inat", tid:57742,  tags:["fish","marine","aquatic","colorful","small"]},
+  {id:"jumper",    name:"Jumping Spider",   sci:"Phidippus audax",          em:"🕷️", src:"inat", tid:53809,  tags:["invertebrate","bug","small","weird"]},
+  {id:"monarch",   name:"Monarch Butterfly",sci:"Danaus plexippus",         em:"🦋", src:"inat", tid:48662,  tags:["invertebrate","bug","colorful","small"]},
+  {id:"bee",       name:"Bumblebee",        sci:"Bombus",                   em:"🐝", src:"inat", tid:52775,  tags:["invertebrate","bug","fluffy","small"]},
+];
+const byId = Object.fromEntries(CATALOG.map(a => [a.id, a]));
+
+/* Tags that make up an animal's "feature vector": its own identity + traits. */
+function featuresOf(a){ return ["sp:" + a.id, ...a.tags]; }
+
+/* =======================================================================
+   2. MEMORY — up/down counts per feature, persisted in localStorage.
+   ======================================================================= */
+const KEY = "animal-taste-v1";
+let store = { feats:{}, seen:0 };
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const p = JSON.parse(raw);
+      if(p && typeof p === "object"){ store.feats = p.feats || {}; store.seen = p.seen || 0; }
+    }
+  }catch(e){ /* private mode / file:// restrictions — stay in memory */ }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
+}
+function stat(f){ return store.feats[f] || (store.feats[f] = {u:0, d:0}); }
+
+/* =======================================================================
+   3. THE MODEL
+      Each animal gets a Beta(a,b) belief built from its features. Its own
+      species counts at full weight; shared traits count at 0.32, which is
+      how a thumbs-up on a fox nudges every other fluffy mammal upward.
+      Picking = Thompson sampling: draw from each belief, show the winner.
+      Confident favourites win often; uncertain animals still get their
+      turn, so the page keeps exploring instead of looping one species.
+   ======================================================================= */
+const TRAIT_PULL = 1.6;   // traits are worth at most ~1.6 votes of hearsay
+
+function belief(a){
+  let al = 1, be = 1;
+
+  const own = store.feats["sp:" + a.id];
+  if(own){ al += own.u; be += own.d; }        // your own verdict, full weight
+
+  // Traits are averaged, not summed, so an animal with many tags does not
+  // out-score one you actually voted on just by carrying more labels.
+  let tu = 0, td = 0;
+  for(const t of a.tags){
+    const s = store.feats[t];
+    if(s){ tu += s.u; td += s.d; }
+  }
+  const n = a.tags.length || 1;
+  al += TRAIT_PULL * (tu / n);
+  be += TRAIT_PULL * (td / n);
+
+  return {a:al, b:be};
+}
+function predict(a){ const {a:al, b:be} = belief(a); return al / (al + be); }
+function evidenceOf(a){ const s = store.feats["sp:" + a.id]; return s ? s.u + s.d : 0; }
+
+function gauss(){
+  let u = 0, v = 0;
+  while(u === 0) u = Math.random();
+  while(v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+/* Marsaglia–Tsang gamma sampler, used to build Beta draws. */
+function gammaSample(k){
+  if(k < 1) return gammaSample(k + 1) * Math.pow(Math.random(), 1 / k);
+  const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for(;;){
+    let x, v;
+    do { x = gauss(); v = 1 + c * x; } while(v <= 0);
+    v = v * v * v;
+    const u = Math.random();
+    if(u < 1 - 0.0331 * x * x * x * x) return d * v;
+    if(Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+function betaSample(a, b){ const x = gammaSample(a); return x / (x + gammaSample(b)); }
+
+const dead = new Set();   // species whose image source keeps failing
+let lastPick = null;
+
+function choose(){
+  let pool = CATALOG.filter(a => !dead.has(a.id));
+  if(!pool.length){ dead.clear(); pool = CATALOG.slice(); }
+  if(pool.length > 1 && lastPick) pool = pool.filter(a => a.id !== lastPick);
+
+  // 12% pure random keeps a door open for animals the model has written off.
+  if(Math.random() < 0.12) return pool[Math.floor(Math.random() * pool.length)];
+
+  let best = pool[0], bestScore = -1;
+  for(const a of pool){
+    const {a:al, b:be} = belief(a);
+    const s = betaSample(al, be);
+    if(s > bestScore){ bestScore = s; best = a; }
+  }
+  return best;
+}
+
+/* =======================================================================
+   4. IMAGE SOURCES
+      Every source resolves to {url, credit, creditUrl, note}. iNaturalist
+      pages are cached per species so one request covers ~30 pictures.
+   ======================================================================= */
+const PER_PAGE = 30;
+const inatCache = {};   // id -> array of unshown photo records
+const inatPages = {};   // id -> highest page worth asking for
+
+/* One request yields ~30 observations, so a species is only re-queried
+   every couple of minutes of viewing. */
+async function queryINat(a, page, relaxed){
+  const url = "https://api.inaturalist.org/v1/observations"
+    + "?taxon_id=" + a.tid                     // exact taxon: no lookalike species
+    + "&photos=true&quality_grade=research&order_by=votes&locale=en"
+    + "&without_term_value_id=19"            // no dead specimens, skulls or roadkill
+    + (relaxed ? "" : "&popular=true")       // faved observations = the good photos
+    + "&photo_license=cc0,cc-by,cc-by-nc,cc-by-sa,cc-by-nc-sa"
+    + "&per_page=" + PER_PAGE + "&page=" + page;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("iNat " + res.status);
+  return res.json();
+}
+
+function harvest(data){
+  const out = [];
+  for(const obs of (data.results || [])){
+    for(const ph of (obs.photos || [])){
+      if(!ph.url) continue;
+      out.push({
+        url: ph.url.replace(/\/square\./, "/large."),
+        credit: (ph.attribution || "iNaturalist").replace(/\s*\(c\)\s*/i, "© "),
+        creditUrl: obs.uri || "https://www.inaturalist.org/",
+        note: obs.taxon && obs.taxon.preferred_common_name || ""
+      });
+    }
+  }
+  return out;
+}
+
+async function fetchINat(a){
+  let bag = inatCache[a.id];
+  if(!bag || !bag.length){
+    const known = inatPages[a.id] || 5;
+    let page = 1 + Math.floor(Math.random() * known);
+    let data = await queryINat(a, page, false);
+
+    // Remember how deep this species actually goes, so thinly-photographed
+    // animals stop being asked for page 5 of 2.
+    const total = data.total_results || 0;
+    inatPages[a.id] = Math.max(1, Math.min(10, Math.ceil(total / PER_PAGE)));
+
+    bag = harvest(data);
+    if(!bag.length && page > 1){                       // asked past the end
+      data = await queryINat(a, 1, false);
+      bag = harvest(data);
+    }
+    if(!bag.length){                                   // too few faves to be picky
+      data = await queryINat(a, 1, true);
+      bag = harvest(data);
+    }
+    if(!bag.length) throw new Error("no photos for " + a.sci);
+
+    for(let i = bag.length - 1; i > 0; i--){           // shuffle
+      const j = Math.floor(Math.random() * (i + 1));
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+    inatCache[a.id] = bag;
+  }
+  return bag.pop();
+}
+
+async function fetchCat(){
+  return {
+    url: "https://cataas.com/cat?width=1200&t=" + Date.now() + Math.random(),
+    credit: "cataas.com", creditUrl: "https://cataas.com", note: ""
+  };
+}
+
+async function fetchDog(){
+  const res = await fetch("https://dog.ceo/api/breeds/image/random");
+  if(!res.ok) throw new Error("dog.ceo " + res.status);
+  const data = await res.json();
+  if(!data.message) throw new Error("dog.ceo empty");
+  const breed = (data.message.match(/breeds\/([^/]+)\//) || [,""])[1]
+    .split("-").reverse().join(" ")
+    .replace(/\b\w/g, c => c.toUpperCase());
+  return { url:data.message, credit:"dog.ceo", creditUrl:"https://dog.ceo", note:breed };
+}
+
+function fetchFor(a){
+  if(a.src === "cataas") return fetchCat();
+  if(a.src === "dogceo") return fetchDog();
+  return fetchINat(a);
+}
+
+function preloadImage(url){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    img.onload = () => resolve(url);
+    img.onerror = () => reject(new Error("image failed"));
+    img.src = url;
+  });
+}
+
+/* Produce one fully-loaded card, retrying other species on failure. */
+async function nextCard(tries = 0){
+  const a = choose();
+  try{
+    const photo = await fetchFor(a);
+    await preloadImage(photo.url);
+    dead.delete(a.id);
+    lastPick = a.id;
+    return {animal:a, photo};
+  }catch(err){
+    dead.add(a.id);
+    if(tries < 5) return nextCard(tries + 1);
+    throw err;
+  }
+}
+
+/* A one-deep queue so the 5-second switch is instant, never a blank frame. */
+let upcoming = null;
+function prefetch(){
+  if(upcoming) return;
+  upcoming = nextCard().catch(() => null);
+}
+async function takeCard(){
+  const pending = upcoming || nextCard();
+  upcoming = null;
+  const card = await pending;
+  prefetch();
+  return card || nextCard();
+}
+
+/* =======================================================================
+   5. UI
+   ======================================================================= */
+const $ = id => document.getElementById(id);
+const els = {
+  stage:$("stage"), bar:$("bar"), spinner:$("spinner"), a:$("imgA"), b:$("imgB"),
+  name:$("name"), sci:$("sci"), credit:$("credit"), badge:$("badge"), badgeTxt:$("badgeTxt"),
+  up:$("btnUp"), down:$("btnDown"), toast:$("toast"), rank:$("rank"), tags:$("tags"),
+  pause:$("pause"), skip:$("skip"), reset:$("reset"), seenN:$("seenN"), err:$("err")
+};
+
+let front = els.a, back = els.b;
+let current = null;      // {animal, photo}
+let voted = false;       // vote already cast on the current picture
+
+function showCard(card){
+  current = card;
+  voted = false;
+  const {animal, photo} = card;
+
+  back.src = photo.url;
+  back.alt = animal.name;
+  back.classList.add("on");
+  front.classList.remove("on");
+  [front, back] = [back, front];
+
+  els.spinner.style.display = "none";
+  els.name.textContent = animal.name;
+  els.sci.textContent = photo.note && photo.note.toLowerCase() !== animal.name.toLowerCase()
+    ? photo.note + " · " + animal.sci
+    : animal.sci;
+  els.credit.innerHTML = "";
+  const link = document.createElement("a");
+  link.href = photo.creditUrl; link.target = "_blank"; link.rel = "noopener noreferrer";
+  link.textContent = photo.credit;
+  els.credit.append("photo: ", link);
+
+  const ev = evidenceOf(animal);
+  const p = predict(animal);
+  els.badge.className = "badge" + (ev && p > 0.6 ? " liked" : ev && p < 0.4 ? " disliked" : "");
+  els.badgeTxt.textContent = ev === 0
+    ? "new to you"
+    : p > 0.6 ? "you like these (" + Math.round(p * 100) + "%)"
+    : p < 0.4 ? "low match (" + Math.round(p * 100) + "%)"
+    : "match " + Math.round(p * 100) + "%";
+
+  els.up.disabled = els.down.disabled = false;
+  renderRank();
+}
+
+function say(html){
+  els.toast.innerHTML = html;
+  els.toast.classList.add("on");
+  clearTimeout(say._t);
+  say._t = setTimeout(() => els.toast.classList.remove("on"), 2600);
+}
+
+async function advance(){
+  stopTimer();
+  els.up.disabled = els.down.disabled = true;
+  if(!current) els.spinner.style.display = "grid";
+  try{
+    const card = await takeCard();
+    showCard(card);
+    els.err.classList.remove("on");
+    startTimer();
+  }catch(err){
+    els.spinner.style.display = "none";
+    els.err.textContent = "Could not load any animal pictures — check your internet connection. Retrying in 5s…";
+    els.err.classList.add("on");
+    setTimeout(advance, 5000);
+  }
+}
+
+/* ---- voting ---- */
+function vote(liked){
+  if(!current || voted) return;
+  voted = true;
+  const a = current.animal;
+  for(const f of featuresOf(a)) liked ? stat(f).u++ : stat(f).d++;
+  store.seen++;
+  save();
+
+  const btn = liked ? els.up : els.down;
+  btn.classList.add("flash");
+  setTimeout(() => btn.classList.remove("flash"), 260);
+
+  const kin = CATALOG
+    .filter(x => x.id !== a.id && x.tags.filter(t => a.tags.includes(t)).length >= 2)
+    .sort((x, y) => predict(y) - predict(x))[0];
+  say(liked
+    ? "Noted — more <b>" + a.name.toLowerCase() + "</b>" + (kin ? " and things like <b>" + kin.name.toLowerCase() + "</b>" : "")
+    : "Got it — fewer <b>" + a.name.toLowerCase() + "</b>" + (a.tags[0] ? " and <b>" + a.tags[0] + "</b> pictures" : ""));
+
+  els.seenN.textContent = store.seen;
+  renderRank();
+  advance();          // a vote is a decision — move straight on
+}
+
+/* ---- 5-second timer (rAF so pausing is exact) ---- */
+const PERIOD = 5000;
+let elapsed = 0, lastTs = 0, raf = 0, paused = false;
+
+function tick(ts){
+  if(paused) return;
+  if(!lastTs) lastTs = ts;
+  elapsed += ts - lastTs;
+  lastTs = ts;
+  const pct = Math.min(1, elapsed / PERIOD);
+  els.bar.style.width = (pct * 100) + "%";
+  if(pct >= 1){ advance(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startTimer(){
+  stopTimer();
+  elapsed = 0; lastTs = 0;
+  els.bar.style.width = "0%";
+  if(!paused) raf = requestAnimationFrame(tick);
+}
+function stopTimer(){ cancelAnimationFrame(raf); raf = 0; lastTs = 0; }
+function setPaused(p){
+  paused = p;
+  els.bar.classList.toggle("paused", p);
+  els.pause.textContent = p ? "▶ play" : "⏸ pause";
+  if(p) stopTimer();
+  else { lastTs = 0; raf = requestAnimationFrame(tick); }
+}
+
+/* ---- sidebar ---- */
+function renderRank(){
+  const rows = CATALOG
+    .map(a => ({a, p:predict(a), ev:evidenceOf(a)}))
+    .sort((x, y) => y.p - x.p || y.ev - x.ev);
+
+  els.rank.innerHTML = "";
+  for(const {a, p, ev} of rows){
+    const li = document.createElement("li");
+    if(current && current.animal.id === a.id) li.className = "current";
+    const s = store.feats["sp:" + a.id];
+    // red → green, but drained of colour near 50% so "no opinion yet" looks neutral
+    const off = Math.abs(p - 0.5);
+    const swatch = "hsl(" + (8 + p * 132) + " " + (16 + off * 124) + "% " + (44 + off * 16) + "%)";
+    li.innerHTML =
+      '<div class="row1">' +
+        '<span class="em">' + a.em + '</span>' +
+        '<span class="nm">' + a.name + '</span>' +
+        (ev ? '<span class="tally">' + s.u + '↑ ' + s.d + '↓</span>' : '') +
+        '<span class="pct">' + Math.round(p * 100) + '%</span>' +
+      '</div>' +
+      '<div class="meter"><i style="width:' + (p * 100).toFixed(1) + '%;background:' + swatch + '"></i></div>';
+    els.rank.appendChild(li);
+  }
+
+  // traits with enough evidence to mean something
+  const traits = [...new Set(CATALOG.flatMap(a => a.tags))]
+    .map(t => { const s = store.feats[t] || {u:0, d:0}; return {t, n:s.u + s.d, p:(s.u + 1) / (s.u + s.d + 2)}; })
+    .filter(x => x.n >= 2)
+    .sort((x, y) => Math.abs(y.p - .5) - Math.abs(x.p - .5))
+    .slice(0, 8);
+
+  els.tags.innerHTML = traits.length
+    ? traits.map(x =>
+        '<span class="tag ' + (x.p > .58 ? "pos" : x.p < .42 ? "neg" : "") + '">' +
+        (x.p > .58 ? "♥ " : x.p < .42 ? "✕ " : "") + x.t + '</span>').join("")
+    : '<span class="tag">traits appear after a few votes</span>';
+
+  els.seenN.textContent = store.seen;
+}
+
+/* ---- wiring ---- */
+els.up.onclick   = () => vote(true);
+els.down.onclick = () => vote(false);
+els.skip.onclick = () => advance();
+els.pause.onclick = () => setPaused(!paused);
+
+els.reset.onclick = () => {
+  if(!confirm("Forget everything learned about your taste?")) return;
+  store = {feats:{}, seen:0};
+  save();
+  renderRank();
+  say("Starting fresh.");
+};
+
+document.addEventListener("keydown", e => {
+  if(e.key === "ArrowRight" || e.key === "ArrowUp"){ e.preventDefault(); vote(true); }
+  else if(e.key === "ArrowLeft" || e.key === "ArrowDown"){ e.preventDefault(); vote(false); }
+  else if(e.key === " "){ e.preventDefault(); setPaused(!paused); }
+  else if(e.key.toLowerCase() === "s"){ advance(); }
+});
+
+// hold the current picture while the tab is hidden
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden) stopTimer();
+  else if(!paused && current){ lastTs = 0; raf = requestAnimationFrame(tick); }
+});
+
+load();
+renderRank();
+advance();
+</script>
+</body>
+</html>
