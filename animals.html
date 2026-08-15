@@ -49,14 +49,11 @@
   .stage{position:relative;aspect-ratio:16/10;background:var(--bg2);overflow:hidden}
   @media (max-width:520px){.stage{aspect-ratio:4/3}}
   .stage img{
-    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:zoom-in;
     opacity:0;transform:scale(1.06);
     transition:opacity .55s ease, transform 6s ease-out;
   }
   .stage img.on{opacity:1;transform:scale(1)}
-
-  .bar{position:absolute;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:4;box-shadow:0 0 12px var(--accent)}
-  .bar.paused{background:var(--dimmer);box-shadow:none}
 
   .badge{
     position:absolute;top:12px;left:12px;z-index:3;display:flex;align-items:center;gap:7px;
@@ -67,12 +64,13 @@
   .badge.liked .dot{background:var(--up)}
   .badge.disliked .dot{background:var(--down)}
 
-  .pausebtn{
+  .zoom-btn{
     position:absolute;top:12px;right:12px;z-index:3;
     background:rgba(10,13,20,.7);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
-    color:#dbe3f0;padding:6px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;
+    color:#dbe3f0;width:33px;height:33px;border-radius:50%;cursor:pointer;font-size:14.5px;
+    display:flex;align-items:center;justify-content:center;
   }
-  .pausebtn:hover{background:rgba(10,13,20,.9)}
+  .zoom-btn:hover{background:rgba(10,13,20,.9)}
 
   .caption{
     position:absolute;left:0;right:0;bottom:0;z-index:2;padding:44px 18px 14px;
@@ -107,9 +105,12 @@
   .vote:hover{transform:translateY(-2px)}
   .vote.up:hover{border-color:var(--up);box-shadow:0 6px 22px -10px var(--up)}
   .vote.down:hover{border-color:var(--down);box-shadow:0 6px 22px -10px var(--down)}
+  .vote.skip{flex:.7;color:var(--dim)}
+  .vote.skip:hover{border-color:var(--dimmer);box-shadow:0 6px 22px -10px rgba(255,255,255,.15);color:var(--txt)}
   .vote:active{transform:translateY(0) scale(.98)}
   .vote.up.flash{background:rgba(63,214,138,.18);border-color:var(--up)}
   .vote.down.flash{background:rgba(255,107,122,.18);border-color:var(--down)}
+  .vote.skip.flash{background:rgba(255,255,255,.08);border-color:var(--dimmer)}
   .vote:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
 
   .toast{
@@ -155,6 +156,35 @@
 
   .err{padding:16px;color:#ffb3ba;font-size:13px;background:rgba(255,107,122,.07);border-top:1px solid var(--line);display:none}
   .err.on{display:block}
+
+  /* ---------- zoom lightbox ---------- */
+  .lightbox{
+    position:fixed;inset:0;z-index:50;background:rgba(5,7,11,.94);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;overflow:hidden;touch-action:none;
+  }
+  .lightbox.on{display:flex}
+  .lightbox img{
+    max-width:92vw;max-height:86vh;object-fit:contain;
+    transform-origin:center center;will-change:transform;
+    user-select:none;-webkit-user-drag:none;transition:transform .06s linear;
+  }
+  .lightbox img.dragging{transition:none}
+  .lb-close{
+    position:absolute;top:16px;right:18px;z-index:2;
+    width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);
+    background:rgba(15,18,26,.75);color:#e8edf5;font-size:17px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .lb-close:hover{background:rgba(15,18,26,.95)}
+  .lb-caption{
+    position:absolute;top:16px;left:18px;color:#dbe3f0;font-size:13.5px;
+    background:rgba(15,18,26,.6);padding:6px 13px;border-radius:999px;pointer-events:none;
+  }
+  .lb-hint{
+    position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+    font-size:12px;color:var(--dim);background:rgba(15,18,26,.6);padding:5px 13px;border-radius:999px;
+    pointer-events:none;white-space:nowrap;
+  }
 </style>
 </head>
 <body>
@@ -162,7 +192,7 @@
 
   <header>
     <h1>Animal Taste <span>— it learns what you like</span></h1>
-    <div class="sub"><b id="seenN">0</b> rated · new picture every 5s</div>
+    <div class="sub"><b id="seenN">0</b> rated · vote to see the next one</div>
   </header>
 
   <div class="layout">
@@ -170,11 +200,10 @@
     <!-- ============ stage ============ -->
     <div class="card">
       <div class="stage" id="stage">
-        <div class="bar" id="bar"></div>
         <div class="spinner" id="spinner"><div><div class="ring"></div>finding an animal…</div></div>
         <img id="imgA" alt=""><img id="imgB" alt="">
         <div class="badge" id="badge"><span class="dot"></span><span id="badgeTxt">exploring</span></div>
-        <button class="pausebtn" id="pause">⏸ pause</button>
+        <button class="zoom-btn" id="zoomBtn" title="Zoom in" aria-label="Zoom image">🔍</button>
         <div class="caption">
           <div class="name" id="name">…</div>
           <div class="sci" id="sci"></div>
@@ -184,6 +213,7 @@
 
       <div class="votes">
         <button class="vote down" id="btnDown"><span class="ico">👎</span> Not for me <span class="key">←</span></button>
+        <button class="vote skip" id="btnSkip"><span class="ico">🤷</span> Not sure <span class="key">S</span></button>
         <button class="vote up" id="btnUp"><span class="ico">👍</span> Love it <span class="key">→</span></button>
       </div>
       <div class="toast" id="toast"></div>
@@ -199,12 +229,18 @@
       </div>
       <div class="tags" id="tags"></div>
       <div class="foot">
-        <button class="mini" id="skip">Skip →</button>
         <button class="mini" id="reset">Reset learning</button>
       </div>
     </div>
 
   </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lbClose" aria-label="Close zoom">✕</button>
+  <div class="lb-caption" id="lbCaption"></div>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-hint">scroll / pinch to zoom · drag to pan · double-click to reset · Esc to close</div>
 </div>
 
 <script>
@@ -477,10 +513,10 @@ async function takeCard(){
    ======================================================================= */
 const $ = id => document.getElementById(id);
 const els = {
-  stage:$("stage"), bar:$("bar"), spinner:$("spinner"), a:$("imgA"), b:$("imgB"),
+  stage:$("stage"), spinner:$("spinner"), a:$("imgA"), b:$("imgB"),
   name:$("name"), sci:$("sci"), credit:$("credit"), badge:$("badge"), badgeTxt:$("badgeTxt"),
-  up:$("btnUp"), down:$("btnDown"), toast:$("toast"), rank:$("rank"), tags:$("tags"),
-  pause:$("pause"), skip:$("skip"), reset:$("reset"), seenN:$("seenN"), err:$("err")
+  up:$("btnUp"), down:$("btnDown"), skip:$("btnSkip"), zoomBtn:$("zoomBtn"),
+  toast:$("toast"), rank:$("rank"), tags:$("tags"), reset:$("reset"), seenN:$("seenN"), err:$("err")
 };
 
 let front = els.a, back = els.b;
@@ -518,7 +554,7 @@ function showCard(card){
     : p < 0.4 ? "low match (" + Math.round(p * 100) + "%)"
     : "match " + Math.round(p * 100) + "%";
 
-  els.up.disabled = els.down.disabled = false;
+  els.up.disabled = els.down.disabled = els.skip.disabled = false;
   renderRank();
 }
 
@@ -530,14 +566,12 @@ function say(html){
 }
 
 async function advance(){
-  stopTimer();
-  els.up.disabled = els.down.disabled = true;
+  els.up.disabled = els.down.disabled = els.skip.disabled = true;
   if(!current) els.spinner.style.display = "grid";
   try{
     const card = await takeCard();
     showCard(card);
     els.err.classList.remove("on");
-    startTimer();
   }catch(err){
     els.spinner.style.display = "none";
     els.err.textContent = "Could not load any animal pictures — check your internet connection. Retrying in 5s…";
@@ -571,34 +605,100 @@ function vote(liked){
   advance();          // a vote is a decision — move straight on
 }
 
-/* ---- 5-second timer (rAF so pausing is exact) ---- */
-const PERIOD = 5000;
-let elapsed = 0, lastTs = 0, raf = 0, paused = false;
+/* ---- zoom lightbox ----
+   Click the image or the magnifier to open. Scroll/pinch to zoom, drag to
+   pan once zoomed, double-click/tap to toggle. Escape, the × button, or a
+   click on the backdrop closes it. */
+const lb = {
+  overlay:$("lightbox"), img:$("lbImg"), caption:$("lbCaption"), closeBtn:$("lbClose"),
+  scale:1, x:0, y:0, dragging:false, lastPX:0, lastPY:0,
+  pointers:new Map(), pinchDist:0, pinchScale:1
+};
+function lbClamp(s){ return Math.min(6, Math.max(1, s)); }
+function lbApply(){
+  lb.img.style.transform = "translate(" + lb.x + "px," + lb.y + "px) scale(" + lb.scale + ")";
+  lb.img.style.cursor = lb.scale > 1 ? "grab" : "zoom-in";
+}
+function lbReset(){ lb.scale = 1; lb.x = 0; lb.y = 0; lbApply(); }
+function openLightbox(){
+  if(!current) return;
+  lb.img.src = current.photo.url;
+  lb.img.alt = current.animal.name;
+  lb.caption.textContent = current.animal.name + (current.animal.sci ? " · " + current.animal.sci : "");
+  lbReset();
+  lb.overlay.classList.add("on");
+  document.body.style.overflow = "hidden";
+}
+function closeLightbox(){
+  lb.overlay.classList.remove("on");
+  document.body.style.overflow = "";
+  lb.pointers.clear();
+  lb.dragging = false;
+}
 
-function tick(ts){
-  if(paused) return;
-  if(!lastTs) lastTs = ts;
-  elapsed += ts - lastTs;
-  lastTs = ts;
-  const pct = Math.min(1, elapsed / PERIOD);
-  els.bar.style.width = (pct * 100) + "%";
-  if(pct >= 1){ advance(); return; }
-  raf = requestAnimationFrame(tick);
+els.zoomBtn.onclick = openLightbox;
+els.a.addEventListener("click", openLightbox);
+els.b.addEventListener("click", openLightbox);
+lb.closeBtn.onclick = closeLightbox;
+lb.overlay.addEventListener("click", e => { if(e.target === lb.overlay) closeLightbox(); });
+
+lb.overlay.addEventListener("wheel", e => {
+  e.preventDefault();
+  const factor = Math.exp(-e.deltaY * 0.0018);
+  lb.scale = lbClamp(lb.scale * factor);
+  if(lb.scale === 1){ lb.x = 0; lb.y = 0; }
+  lbApply();
+}, {passive:false});
+
+lb.img.addEventListener("dblclick", e => {
+  e.preventDefault();
+  if(lb.scale > 1){ lbReset(); } else { lb.scale = 2.5; lbApply(); }
+});
+
+lb.overlay.addEventListener("pointerdown", e => {
+  if(e.target === lb.closeBtn) return;
+  lb.pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(lb.pointers.size === 1 && lb.scale > 1){
+    lb.dragging = true;
+    lb.lastPX = e.clientX; lb.lastPY = e.clientY;
+    lb.img.classList.add("dragging");
+    lb.img.setPointerCapture(e.pointerId);
+  }
+  if(lb.pointers.size === 2){
+    lb.dragging = false;
+    const pts = [...lb.pointers.values()];
+    lb.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    lb.pinchScale = lb.scale;
+  }
+});
+lb.overlay.addEventListener("pointermove", e => {
+  if(!lb.pointers.has(e.pointerId)) return;
+  lb.pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(lb.pointers.size === 2){
+    const pts = [...lb.pointers.values()];
+    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if(lb.pinchDist > 0){
+      lb.scale = lbClamp(lb.pinchScale * (dist / lb.pinchDist));
+      if(lb.scale === 1){ lb.x = 0; lb.y = 0; }
+      lbApply();
+    }
+    return;
+  }
+  if(lb.dragging){
+    lb.x += e.clientX - lb.lastPX;
+    lb.y += e.clientY - lb.lastPY;
+    lb.lastPX = e.clientX; lb.lastPY = e.clientY;
+    lbApply();
+  }
+});
+function lbEndPointer(e){
+  lb.pointers.delete(e.pointerId);
+  if(lb.pointers.size < 2) lb.pinchDist = 0;
+  if(lb.pointers.size === 0){ lb.dragging = false; lb.img.classList.remove("dragging"); }
 }
-function startTimer(){
-  stopTimer();
-  elapsed = 0; lastTs = 0;
-  els.bar.style.width = "0%";
-  if(!paused) raf = requestAnimationFrame(tick);
-}
-function stopTimer(){ cancelAnimationFrame(raf); raf = 0; lastTs = 0; }
-function setPaused(p){
-  paused = p;
-  els.bar.classList.toggle("paused", p);
-  els.pause.textContent = p ? "▶ play" : "⏸ pause";
-  if(p) stopTimer();
-  else { lastTs = 0; raf = requestAnimationFrame(tick); }
-}
+lb.overlay.addEventListener("pointerup", lbEndPointer);
+lb.overlay.addEventListener("pointercancel", lbEndPointer);
+lb.overlay.addEventListener("pointerleave", lbEndPointer);
 
 /* ---- sidebar ---- */
 function renderRank(){
@@ -644,8 +744,7 @@ function renderRank(){
 /* ---- wiring ---- */
 els.up.onclick   = () => vote(true);
 els.down.onclick = () => vote(false);
-els.skip.onclick = () => advance();
-els.pause.onclick = () => setPaused(!paused);
+els.skip.onclick = () => { if(current) advance(); };
 
 els.reset.onclick = () => {
   if(!confirm("Forget everything learned about your taste?")) return;
@@ -656,16 +755,13 @@ els.reset.onclick = () => {
 };
 
 document.addEventListener("keydown", e => {
+  if(lb.overlay.classList.contains("on")){
+    if(e.key === "Escape") closeLightbox();
+    return;               // swallow other keys while zoomed, so voting can't happen by accident
+  }
   if(e.key === "ArrowRight" || e.key === "ArrowUp"){ e.preventDefault(); vote(true); }
   else if(e.key === "ArrowLeft" || e.key === "ArrowDown"){ e.preventDefault(); vote(false); }
-  else if(e.key === " "){ e.preventDefault(); setPaused(!paused); }
-  else if(e.key.toLowerCase() === "s"){ advance(); }
-});
-
-// hold the current picture while the tab is hidden
-document.addEventListener("visibilitychange", () => {
-  if(document.hidden) stopTimer();
-  else if(!paused && current){ lastTs = 0; raf = requestAnimationFrame(tick); }
+  else if(e.key === " " || e.key.toLowerCase() === "s"){ e.preventDefault(); if(current) advance(); }
 });
 
 load();
