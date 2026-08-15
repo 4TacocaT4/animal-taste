@@ -136,6 +136,10 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
 .brand__name{font-size:.9375rem;font-weight:700;letter-spacing:.01em}
 .topbar__slot{flex:1;min-width:0;display:flex;align-items:center;gap:var(--s4)}
 .topbar__end{flex:none;font-size:.75rem;font-weight:550;color:var(--muted);font-variant-numeric:tabular-nums}
+.topbar__personalize{flex:none;display:flex;align-items:center;gap:6px}
+@media (max-width:560px){
+  .topbar__personalize-label{display:none}
+}
 
 .stage{flex:1;width:100%;max-width:var(--shell);margin:0 auto;padding:var(--s7) var(--s5) var(--s9)}
 
@@ -466,6 +470,12 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
   font-size:.6875rem;font-weight:700;color:var(--accent-hi);
 }
 
+.restrow{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s3);flex-wrap:wrap;
+  margin:0 0 var(--s4);
+}
+.restrow__label{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
 .sets,.setgrid-head{max-width:440px}
 .sets{display:grid;gap:6px}
 .setrow{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 40px;gap:var(--s2);align-items:center}
@@ -550,6 +560,38 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
 .timer.is-up{border-color:var(--accent);box-shadow:0 18px 50px -10px rgba(76,141,255,.5),inset 0 1px 0 rgba(255,255,255,.1)}
 .timer.is-up .timer__arc{stroke:var(--good)}
 .timer.is-up .timer__label{color:var(--accent-hi)}
+
+/* ============================================================
+   personalize
+   ============================================================ */
+.pz-overlay{
+  position:fixed;inset:0;z-index:80;display:flex;justify-content:center;align-items:flex-start;
+  padding:var(--s5);overflow-y:auto;
+  background:rgba(4,7,11,.6);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  animation:pzFade .16s var(--ease);
+}
+@keyframes pzFade{from{opacity:0}to{opacity:1}}
+.pz-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--lift-hi);max-width:460px;width:100%;padding:var(--s5);
+  margin-top:var(--s6);height:fit-content;
+}
+.pz-panel:focus{outline:none}
+.pz-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s4);margin-bottom:var(--s5)}
+.pz-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s4);padding:var(--s4) 0;border-top:1px solid var(--line)}
+.pz-row__title{font-size:.9375rem;font-weight:600;color:var(--text);margin:0}
+.pz-row__desc{font-size:.8125rem;color:var(--muted);margin:2px 0 0;line-height:1.5}
+.pz-switch{
+  position:relative;width:42px;height:24px;flex:none;border-radius:var(--r-pill);
+  background:var(--surface-3);border:1px solid var(--line);
+  transition:background .16s var(--ease),border-color .16s var(--ease);
+}
+.pz-switch::before{
+  content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+  background:var(--muted);transition:transform .16s var(--ease),background .16s var(--ease);
+}
+.pz-switch[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent-line)}
+.pz-switch[aria-checked="true"]::before{transform:translateX(18px);background:var(--accent)}
 
 /* ============================================================
    progress view
@@ -646,6 +688,8 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
   .volrow{grid-template-columns:88px 1fr 42px}
   .session__stats{gap:var(--s4)}
   .hero-facts{gap:var(--s4) !important}
+  .pz-overlay{padding:var(--s4);align-items:flex-end}
+  .pz-panel{margin-top:0}
 }
 @media (max-width:520px){
   .rail{grid-template-columns:1fr}
@@ -674,7 +718,7 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
     --lift:none;--lift-hi:none;
   }
   html,body{background:#fff !important;color:#000;overflow:visible}
-  .topbar,.timer,.actions,.btn,.nudge,.rail,.callout,.picker{display:none !important}
+  .topbar,.timer,.pz-overlay,.actions,.btn,.nudge,.rail,.callout,.picker{display:none !important}
   .app{display:block;min-height:0}
   .hub{display:block}
   .stage{padding:0 !important;max-width:100% !important}
@@ -700,6 +744,17 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
       </a>
       <div class="topbar__slot" id="topbarSlot"></div>
       <div class="topbar__end" id="topbarEnd"></div>
+      <button class="btn btn--sm btn--ghost topbar__personalize" id="personalizeBtn" type="button" aria-label="Personalize">
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+          <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="10" cy="4" r="1.8" fill="currentColor"/>
+          <circle cx="6" cy="8" r="1.8" fill="currentColor"/>
+          <circle cx="11" cy="12" r="1.8" fill="currentColor"/>
+        </svg>
+        <span class="topbar__personalize-label">Personalize</span>
+      </button>
     </div>
   </header>
   <main class="stage" id="stage" tabindex="-1">
@@ -716,6 +771,7 @@ button{background:none;border:0;cursor:pointer;font-family:inherit}
   </main>
 </div>
 <div id="timerMount"></div>
+<div id="personalizeMount"></div>
 <noscript>
   <div style="position:fixed;inset:auto 0 0 0;padding:16px;background:#FF6B5A;color:#1a0500;font:15px/1.5 system-ui,sans-serif;text-align:center">
     JavaScript is turned off, so Anvil cannot build your plan. Turn it on and reload.
@@ -2094,9 +2150,177 @@ let hubTab = 'today';
 let openDay = null;
 let timer = null;
 let trendEx = null;
+let personalizeOpen = false;
 
 function persist() { store.save(S); }
 function syncAge() { CURRENT_AGE = (S.profile.age && isFinite(S.profile.age)) ? S.profile.age : 30; }
+
+/* ============================================================
+   PERSONALIZE
+   Small, personal preferences that change how the app behaves
+   rather than what it prescribes — nothing here touches the plan
+   generator, so it needs no version bump and no migration: an
+   older saved state simply has no `settings` object yet, and
+   settings() backfills whatever is missing with defaults the
+   moment anything asks for it.
+   ============================================================ */
+const SETTINGS_DEFAULTS = { restAdjust: 0, autoStartTimer: true, vibrate: true, wakeLock: false };
+function settings() {
+  S.settings = Object.assign({}, SETTINGS_DEFAULTS, S.settings || {});
+  return S.settings;
+}
+
+const REST_ADJUST_MIN = -60, REST_ADJUST_MAX = 90, REST_ADJUST_STEP = 15;
+/* Applied only to the on-screen countdown, never to the plan's own
+   rest field — that field feeds session-length estimates the
+   generator is tested against, and a personal preference for longer
+   breaks should not quietly reshape how many exercises fit in an
+   hour. */
+function effectiveRest(baseSeconds) {
+  return Math.max(15, baseSeconds + settings().restAdjust);
+}
+function fmtRest(sec) {
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec / 60), r = sec % 60;
+  return r ? (m + ':' + String(r).padStart(2, '0')) : (m + ' min');
+}
+
+function vibrateAlert() {
+  if (!settings().vibrate) return;
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { /* unsupported is fine */ }
+}
+
+/* Screen Wake Lock: released automatically by the browser whenever the
+   tab is hidden, so it has to be re-requested on return — the standard
+   shape for this API, not a workaround for a bug. */
+let wakeLockSentinel = null;
+async function requestWakeLock() {
+  try {
+    if (!('wakeLock' in navigator)) return;
+    wakeLockSentinel = await navigator.wakeLock.request('screen');
+    wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+  } catch (e) { /* denied, unsupported, or not a secure context — the toggle just does nothing */ }
+}
+function releaseWakeLock() {
+  try { if (wakeLockSentinel) wakeLockSentinel.release(); } catch (e) {}
+  wakeLockSentinel = null;
+}
+
+function pzSwitch(checked, onToggle) {
+  return h('button', {
+    class: 'pz-switch', role: 'switch', 'aria-checked': checked ? 'true' : 'false',
+    onclick: () => onToggle()
+  });
+}
+
+function pzRow(title, desc, control) {
+  return h('div', { class: 'pz-row' },
+    h('div', null,
+      h('p', { class: 'pz-row__title', text: title }),
+      desc ? h('p', { class: 'pz-row__desc', text: desc }) : null
+    ),
+    control
+  );
+}
+
+function openPersonalize() {
+  personalizeOpen = true;
+  paintPersonalize();
+}
+function closePersonalize() {
+  personalizeOpen = false;
+  paintPersonalize();
+  const btn = document.getElementById('personalizeBtn');
+  if (btn) btn.focus({ preventScroll: true });
+}
+
+function paintPersonalize() {
+  const mount = $('#personalizeMount');
+  if (!mount) return;
+  mount.textContent = '';
+  if (!personalizeOpen) return;
+  const st = settings();
+
+  const restVal = h('span', { class: 'slider__val', text: (st.restAdjust > 0 ? '+' : '') + st.restAdjust + 's' });
+  const restNote = h('span', {
+    class: 'slider__note',
+    text: st.restAdjust === 0 ? 'Your rest timer uses each exercise’s normal length' : 'Added to every exercise’s normal rest'
+  });
+  const example = LIB.find(x => x.id === 'bb_back_squat');
+  const restExample = h('p', { class: 'u-note' });
+  const paintExample = v => {
+    restExample.textContent = v === 0
+      ? 'A heavy squat still rests ' + fmtRest(example.rest) + ', a lighter accessory still rests as usual.'
+      : 'A heavy squat now rests ' + fmtRest(effectiveRest(example.rest)) + ' instead of ' + fmtRest(example.rest) + '.';
+  };
+  paintExample(st.restAdjust);
+  const restSlider = h('input', {
+    class: 'slider', type: 'range',
+    min: REST_ADJUST_MIN, max: REST_ADJUST_MAX, step: REST_ADJUST_STEP, value: st.restAdjust,
+    'aria-label': 'Adjust rest between sets',
+    oninput: e => {
+      const v = Number(e.target.value);
+      restVal.textContent = (v > 0 ? '+' : '') + v + 's';
+      restNote.textContent = v === 0 ? 'Your rest timer uses each exercise’s normal length' : 'Added to every exercise’s normal rest';
+      paintExample(v);
+      e.target.style.setProperty('--fill', ((v - REST_ADJUST_MIN) / (REST_ADJUST_MAX - REST_ADJUST_MIN) * 100) + '%');
+    },
+    onchange: e => { settings().restAdjust = Number(e.target.value); persist(); }
+  });
+  restSlider.style.setProperty('--fill', ((st.restAdjust - REST_ADJUST_MIN) / (REST_ADJUST_MAX - REST_ADJUST_MIN) * 100) + '%');
+
+  const panel = h('div', {
+    class: 'pz-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Personalize', tabindex: '-1',
+    onclick: e => e.stopPropagation()
+  });
+
+  panel.appendChild(h('div', { class: 'pz-head' },
+    h('div', null,
+      h('p', { class: 'u-eyebrow', text: 'Personalize' }),
+      h('h2', { class: 'u-h2', text: 'Make it yours' })
+    ),
+    h('button', { class: 'btn btn--sm btn--ghost', 'aria-label': 'Close', onclick: closePersonalize }, 'Close')
+  ));
+
+  panel.appendChild(h('div', { class: 'field', style: { marginBottom: 'var(--s2)' } },
+    h('div', { class: 'row row--between', style: { marginBottom: '2px' } },
+      h('span', { class: 'field__label', text: 'Rest between sets' }),
+      restVal
+    ),
+    restSlider,
+    h('div', { class: 'row row--between' },
+      h('span', { class: 'u-note', text: REST_ADJUST_MIN + 's' }),
+      restNote,
+      h('span', { class: 'u-note', text: '+' + REST_ADJUST_MAX + 's' })
+    ),
+    restExample
+  ));
+
+  panel.appendChild(pzRow('Start my rest timer automatically', 'Off means ticking a set no longer starts the countdown for you — start it yourself when you are ready.',
+    pzSwitch(st.autoStartTimer, () => { settings().autoStartTimer = !st.autoStartTimer; persist(); paintPersonalize(); })));
+
+  panel.appendChild(pzRow('Sound when rest is up', 'A short beep when the countdown hits zero.',
+    pzSwitch(!S.mute, () => { S.mute = !S.mute; persist(); paintPersonalize(); paintTimer(); })));
+
+  if ('vibrate' in navigator) {
+    panel.appendChild(pzRow('Vibrate when rest is up', 'A short buzz alongside — or instead of — the sound.',
+      pzSwitch(st.vibrate, () => { settings().vibrate = !st.vibrate; persist(); paintPersonalize(); })));
+  }
+
+  if ('wakeLock' in navigator) {
+    panel.appendChild(pzRow('Keep the screen awake', 'Stops your phone locking mid-session. Uses a bit more battery.',
+      pzSwitch(st.wakeLock, () => {
+        settings().wakeLock = !st.wakeLock;
+        persist();
+        if (settings().wakeLock) requestWakeLock(); else releaseWakeLock();
+        paintPersonalize();
+      })));
+  }
+
+  const overlay = h('div', { class: 'pz-overlay', onclick: closePersonalize }, panel);
+  mount.appendChild(overlay);
+  panel.focus({ preventScroll: true });
+}
 
 /* ============================================================
    UI: top bar
@@ -2772,7 +2996,7 @@ function startTimer(seconds, label) {
   timer = { left: seconds, total: seconds, label: label || 'Rest', up: false };
   timer.id = setInterval(() => {
     timer.left--;
-    if (timer.left <= 0 && !timer.up) { timer.up = true; timer.left = 0; beep(); }
+    if (timer.left <= 0 && !timer.up) { timer.up = true; timer.left = 0; beep(); vibrateAlert(); }
     if (timer.left <= -30) { stopTimer(); return; }
     paintTimer();
   }, 1000);
@@ -3021,6 +3245,14 @@ function exerciseCard(day, item, i) {
   const body = h('div', { class: 'ex__body' });
   body.appendChild(h('ol', { class: 'ex__steps' }, item.steps.map(st => h('li', null, st))));
 
+  body.appendChild(h('div', { class: 'restrow' },
+    h('span', { class: 'restrow__label', text: 'Rest ' + fmtRest(effectiveRest(item.rest)) + ' between sets' }),
+    h('button', {
+      class: 'btn btn--sm btn--ghost',
+      onclick: () => startTimer(effectiveRest(item.rest), 'Rest · ' + item.name)
+    }, 'Start rest')
+  ));
+
   body.appendChild(h('div', { class: 'setgrid-head' },
     h('span', null, 'Set'),
     h('span', null, item.kind === 'bodyweight' ? '+kg' : 'kg'),
@@ -3054,7 +3286,7 @@ function exerciseCard(day, item, i) {
         if (e.done) {
           if (e.r == null) { e.r = item.reps[0]; rIn.value = item.reps[0]; }
           if (e.w == null && opening != null) { e.w = opening; wIn.value = fmtW(opening); }
-          startTimer(item.rest, 'Rest · ' + item.name);
+          if (settings().autoStartTimer) startTimer(effectiveRest(item.rest), 'Rest · ' + item.name);
         }
         persist();
         repaintPlates();
@@ -4120,6 +4352,38 @@ function runSelfTests() {
     return b64ToUtf8(utf8ToB64(txt)) === txt || b64ToUtf8(utf8ToB64(txt));
   });
 
+  /* ---------- personalize ---------- */
+  t('settings() fills in defaults without touching what is already set', () => {
+    const saved = S.settings;
+    S.settings = { restAdjust: 30 };
+    const st = settings();
+    const ok = st.restAdjust === 30 && st.autoStartTimer === true && st.vibrate === true && st.wakeLock === false;
+    S.settings = saved;
+    return ok || JSON.stringify(st);
+  });
+  t('an old save with no settings at all gets sane defaults', () => {
+    const saved = S.settings;
+    delete S.settings;
+    const st = settings();
+    const ok = st.restAdjust === 0 && st.autoStartTimer === true;
+    S.settings = saved;
+    return ok || JSON.stringify(st);
+  });
+  t('the rest adjustment changes the timer length by exactly the offset', () => {
+    const saved = S.settings;
+    S.settings = { restAdjust: 30 };
+    const ok = effectiveRest(90) === 120;
+    S.settings = saved;
+    return ok || effectiveRest(90);
+  });
+  t('the rest adjustment never drives the timer to zero or below', () => {
+    const saved = S.settings;
+    S.settings = { restAdjust: REST_ADJUST_MIN };
+    const ok = effectiveRest(45) >= 15;
+    S.settings = saved;
+    return ok || effectiveRest(45);
+  });
+
   /* ---------- one-rep max ---------- */
   t('a single rep is its own estimated max', () => e1rm(100, 1) === 100 || e1rm(100, 1));
   t('more reps at the same weight estimates a higher max', () => e1rm(100, 10) > e1rm(100, 5) || 'no');
@@ -4197,10 +4461,25 @@ window.addEventListener('error', e => {
     if (S.plan) exitSetup(); else goStep(0);
   });
 
-  /* Escape closes the rest timer */
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && timer) stopTimer();
+  document.getElementById('personalizeBtn').addEventListener('click', () => {
+    if (personalizeOpen) closePersonalize(); else openPersonalize();
   });
+
+  /* Escape closes whichever floats on top: the settings panel first,
+     otherwise the rest timer */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (personalizeOpen) closePersonalize();
+    else if (timer) stopTimer();
+  });
+
+  /* the wake lock is released by the browser whenever the tab is
+     hidden, so pick it back up when the setting is on and the tab
+     becomes visible again */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && settings().wakeLock && !wakeLockSentinel) requestWakeLock();
+  });
+  if (settings().wakeLock) requestWakeLock();
 
   try {
     render();
